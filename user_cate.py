@@ -11,7 +11,7 @@ TRAIN_FILE = 'TrainDataAll.csv'
 def user_pro_num(grouped):
     #数量特征
     timeused = (END_DATE - grouped['time']).map(lambda x: x.days)
-    for i in {1, 3, 5, 7, 14, 20, 30}:
+    for i in {1, 3, 5, 7, 14, 20}:
         us = grouped[timeused <= i]
         type_cnt = Counter(us['type'])
         grouped['uc_browse_num%s' % i] = type_cnt[1]
@@ -67,8 +67,9 @@ if __name__ == "__main__":
     train = train[(train['time'] >= START_DATE) & (train['time'] <= END_DATE)]
     user_pro = train[train['cate'] == 8][['user_id']]#用户类别对
     user_pro = user_pro.drop_duplicates()
-    user_pro = pd.merge(train, user_pro, on='user_id', how='right')#这样就得到了用户类别对
+    user_pro = pd.merge(train, user_pro, on='user_id', how='right')#这样就得到了用户类别对,由于针对一个商品，其实这个就是近似包含了类别特征
     user_pro['time'] = pd.to_datetime(user_pro['time'])
     grouped = user_pro[['user_id', 'type', 'time']].groupby(['user_id']).apply(user_pro_num)#与ui的区别就在这里
+    #这里决定在这一阶段填补nan值，让所有nan值等于时间最长的交互时间
     grouped = grouped.drop_duplicates()
     grouped.to_csv('./feature/user_cate_feature%s_%s.csv' % (START_DATE, END_DATE), index = None)

@@ -1,16 +1,19 @@
 # -*- coding:utf-8 -*-
-#用户商品对特征（只计算商品子集中的），不包括删除购物车
+#用户商品对特征
+#这里为了方便文件名都是用datatime的方式写的
 import pandas as pd
 import numpy as np
 import datetime as dt
 from collections import Counter
-START_DATE = dt.datetime.strptime('2016-2-01',"%Y-%m-%d")#当前时间
-END_DATE = dt.datetime.strptime('2016-4-15',"%Y-%m-%d")#当前时间,可以精确一点
+#这一部分需要计算很多截止时间的特征如2016-2-01到2016-3-01、2016-3-06到2016-04-06
+#2016-03-15到2016-04-15
+START_DATE = dt.datetime.strptime('2016-2-01', "%Y-%m-%d")#开始时间
+END_DATE = dt.datetime.strptime('2016-4-15', "%Y-%m-%d")#当前时间
 TRAIN_FILE = 'TrainDataAll.csv'
 def user_pro_num(grouped):
-    #数量特征
-    timeused = (END_DATE - grouped['time']).map(lambda x: x.days)
-    for i in {1, 3, 5, 7, 14, 20, 30}:
+    #数量特征，相当于历史交互特征
+    timeused = (END_DATE - grouped['time']).map(lambda x: x.days)#这里将所有的时间到截止日期的时间都计算了出来
+    for i in {1, 3, 5, 7, 14, 20}:
         us = grouped[timeused <= i]
         type_cnt = Counter(us['type'])
         grouped['ui_browse_num%s' % i] = type_cnt[1]
@@ -28,6 +31,7 @@ def user_pro_num(grouped):
     grouped['ui_favor_num'] = type_cnt[5]
     grouped['ui_click_num'] = type_cnt[6]
     #时间特征
+    grouped['ui_latest_time'] = timeused.max()#计算最近的交互时间，方便选择用户商品对范围
     if type_cnt[1] != 0:
         grouped['ui_latest_browse_time'] = (END_DATE - grouped[grouped['type'] == 1]['time'].max()).days
     else:
@@ -52,13 +56,6 @@ def user_pro_num(grouped):
         grouped['ui_latest_click_time'] = (END_DATE - grouped[grouped['type'] == 6]['time'].max()).days
     else:
         grouped['ui_latest_click_time'] = np.nan
-    '''
-    #近期的数量特征
-    timeused = (END_DATE - grouped['time']).map(lambda x: x.days)
-    grouped['buy_3day'] = grouped[(grouped['type'] == 4) & (timeused < 3)].size
-    grouped['buy_7day'] = grouped[(grouped['type'] == 4) & (timeused < 7)].size
-    grouped['buy_10day'] = grouped[(grouped['type'] == 4) & (timeused < 10)].size
-    '''
     del grouped['type']
     del grouped['time']
     return grouped
@@ -70,10 +67,9 @@ if __name__ == "__main__":
     train = pd.read_csv(TRAIN_FILE)
     train['time'] = pd.to_datetime(train['time'])
     train = train[(train['time'] >= START_DATE) & (train['time'] <= END_DATE)]
-    user_pro = train[train['cate'] == 8][['user_id','sku_id']]#用户商品对
+    user_pro = train[train['cate'] == 8][['user_id', 'sku_id']]#用户商品对
     user_pro = user_pro.drop_duplicates()
-    user_pro = pd.merge(train, user_pro,on=['user_id','sku_id'], how='right')#这样就得到了用户商品对
-    user_pro['time'] = pd.to_datetime(user_pro['time'])
-    grouped = user_pro[['user_id', 'sku_id', 'type', 'time']].groupby(['user_id', 'sku_id']).apply(user_pro_num)
+    user_pro = pd.merge(train, user_pro, on=['user_id', 'sku_id'], how='right')#这样就得到了用户商品对
+    grouped = user_pro[['user_id', 'sku_id', 'type', 'time']].groupby(['user_id', 'sku_id']).apply(user_pro_num)#提取用户商品对特征
     grouped = grouped.drop_duplicates()
-    grouped.to_csv('./feature/user_product_feature%s_%s.csv' % (START_DATE,END_DATE), index = None)
+    grouped.to_csv('./feature/user_product_feature%s_%s.csv' % (START_DATE, END_DATE), index=None)

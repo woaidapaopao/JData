@@ -90,4 +90,4 @@ if __name__ == "__main__":
     product_behavior = merge_action_data()#提取商品特征
     product_behavior = pd.merge(product_behavior, product_base, on=['sku_id'], how='left')
     product_behavior = pd.merge(product_behavior, comment, on=['sku_id'], how='left')
-    product_behavior.to_csv('./feature/product_feature%s_%s.csv' % (START_DATE,END_DATE), index = None)
+    product_behavior.to_csv('./feature/product_feature%s_%s.csv' % (START_DATE, END_DATE), index=None)
