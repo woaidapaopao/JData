@@ -14,10 +14,10 @@ def cleanTrainData(train_start, train_end,label_start, label_end):
     #读取未清理数据
     dump_path = './uncleanData/traindata%s_%s.csv' % (train_start, label_end)
     if os.path.exists(dump_path):
-        train = pd.read_csv(dump_path, index=None)
+        train = pd.read_csv(dump_path)
     else:
         train_set(train_start, train_end, label_start, label_end)
-        train = pd.read_csv(dump_path, index=None)
+        train = pd.read_csv(dump_path)
     #清理方法
     #这里的数据暂时只简单清理一下
     '''
@@ -51,10 +51,10 @@ def cleanTestData(test_start, test_end):
     #对测试集进行同样的处理
     dump_path = './uncleanData/testdata%s_%s.csv' % (test_start, test_end)
     if os.path.exists(dump_path):
-        test = pd.read_csv(dump_path, index=None)
+        test = pd.read_csv(dump_path)
     else:
         test_set(test_start, test_end)
-        test = pd.read_csv(dump_path, index=None)
+        test = pd.read_csv(dump_path)
     #清理方法
     '''
     test_start1 = dt.datetime.strptime(test_start,"%Y-%m-%d")
