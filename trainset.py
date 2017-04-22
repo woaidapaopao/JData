@@ -25,11 +25,10 @@ def train_set(train_start1,train_end1,label_start1,label_end1):
 
     userf = pd.read_csv('./feature/user_feature%s_%s.csv' % (train_start, train_end))
     prof = pd.read_csv('./feature/product_feature%s_%s.csv' % (train_start, train_end))
-    uif = pd.read_csv('./feature/user_product_feature%s_%s.csv' % (train_start, train_end))
-    ucf = pd.read_csv('./feature/user_cate_feature%s_%s.csv' % (train_start, train_end))
-    trainact = pd.merge(uif, userf, how='left', on='user_id')
+    uicf = pd.read_csv('./feature/user_product_cate_feature%s_%s.csv' % (train_start, train_end))
+
+    trainact = pd.merge(uicf, userf, how='left', on='user_id')
     trainact = pd.merge(trainact, prof, how='left', on='sku_id')
-    trainact = pd.merge(trainact, ucf, how='left', on='user_id')
     label = getlabel(label_start, label_end)
     trainact = pd.merge(trainact, label, how='left', on=['user_id', 'sku_id'])#这时的label部分只有1，其余为nan，这个在clean中处理
     trainact.to_csv('./uncleanData/traindata%s_%s.csv' % (train_start1, label_end1), index=None)
@@ -39,9 +38,8 @@ def test_set(test_start1,test_end1):
     test_end = dt.datetime.strptime(test_end1, "%Y-%m-%d")#测试数据结束
     userf = pd.read_csv('./feature/user_feature%s_%s.csv' % (test_start, test_end))
     prof = pd.read_csv('./feature/product_feature%s_%s.csv' % (test_start, test_end))
-    uif = pd.read_csv('./feature/user_product_feature%s_%s.csv' % (test_start, test_end))
-    ucf = pd.read_csv('./feature/user_cate_feature%s_%s.csv' % (test_start, test_end))
-    testact = pd.merge(uif, userf, how='left', on='user_id')
+    uicf = pd.read_csv('./feature/user_product_cate_feature%s_%s.csv' % (test_start, test_end))
+    testact = pd.merge(uicf, userf, how='left', on='user_id')
     testact = pd.merge(testact, prof, how='left', on='sku_id')
     testact = pd.merge(testact, ucf, how='left', on='user_id')
     testact.to_csv('./uncleanData/testdata%s_%s.csv' % (test_start1, test_end1), index=None)

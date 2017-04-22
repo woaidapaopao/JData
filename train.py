@@ -1,32 +1,9 @@
 # -*- coding:utf-8 -*-
-
-'''
-这里对训练数据要有一个更好的训练技巧只用前5天的ui训练
-（1）这部分是拆分成两个单月数据集，合并方式产生训练集
-    这部分的缺点是用户的历史特征只用了一个月的，以前的交互特征没用到
-    好处是数据集（尤其是对正例）进行了扩展
-（2）直接向前滑动5天得到另一个数据集（目前用的）然后合并成训练集
-    用到了历史特征，感觉应该不错
-'''
 from sklearn.model_selection import train_test_split
 import xgboost as xgb
 import pandas as pd
 import numpy as np
 import datetime as dt
-'''
-TRAIN_START1 = dt.datetime.strptime('2016-2-01',"%Y-%m-%d")#训练数据开始时间
-TRAIN_END1 = dt.datetime.strptime('2016-4-05',"%Y-%m-%d")
-LABEL_START1 = dt.datetime.strptime('2016-4-6',"%Y-%m-%d")
-LABEL_END1 = dt.datetime.strptime('2016-4-10',"%Y-%m-%d")#标签结束时间
-
-TRAIN_START2 = dt.datetime.strptime('2016-2-01',"%Y-%m-%d")#训练数据开始时间
-TRAIN_END2 = dt.datetime.strptime('2016-4-05',"%Y-%m-%d")
-LABEL_START2 = dt.datetime.strptime('2016-4-6',"%Y-%m-%d")
-LABEL_END2 = dt.datetime.strptime('2016-4-10',"%Y-%m-%d")#标签结束时间
-
-START_DATE = dt.datetime.strptime('2016-4-11',"%Y-%m-%d")#测试数据开始
-END_DATE = dt.datetime.strptime('2016-4-15',"%Y-%m-%d")#测试数据结束
-'''
 
 def offlineTest(pred, label):#label为真实值，pred为预测值
     uselabel = label
@@ -71,20 +48,22 @@ def offlineTest(pred, label):#label为真实值，pred为预测值
     print 'score=' + str(score)
 
 def subOnline():
-    train_start1 = '2016-02-01'
-    label_end1 = '2016-04-10'
-    train_start2 = '2016-02-05'
-    label_end2 = '2016-04-15'
-    test_start = '2016-02-01'
+    train_start1 = '2016-02-01'#训练集1时间
+    label_end1 = '2016-03-20'
+    train_start2 = '2016-02-15'#训练集2时间
+    label_end2 = '2016-04-05'
+    test_start = '2016-02-25'#测试集时间
     test_end = '2016-04-15'
     #第一部分的训练集
     train1 = pd.read_csv('.cleaned/trainCleaned%s_%s.csv' % (train_start1, label_end1))
-    train1 = train1[train1['ui_latest_time'] <= 5]#只用5天的用户商品对
     #读取第二部分的训练集
     train2 = pd.read_csv('.cleaned/trainCleaned%s_%s.csv' % (train_start2, label_end2))
-    train2 = train1[train2['ui_latest_time'] <= 5]#只用5天的用户商品对
     #合并数据，这里首先尝试直接合并，然后尝试只用第二部分的正例
+    #方法1
     train = pd.concat([train1, train2])
+    #方法2
+    train = pd.concat([train1, train2[train2['label'] == 1]])
+
     label = train['label']
     traindata = train.drop(['user_id', 'sku_id', 'label'], axis=1)
     X_train, X_test, y_train, y_test = train_test_split(traindata.values, label.values, test_size=0.2, random_state=0)
@@ -113,15 +92,26 @@ def subOnline():
     pred['user_id'] = pred['user_id'].astype(int)
     pred.to_csv('submission.csv', index=False, index_label=False)
 
-def offlineTesT():#这里的还没改
+def offlineTesT():
+    #训练集
     train_start1 = '2016-02-01'
-    label_end1 = '2016-04-05'
-    train_start2 = '2016-02-05'
-    label_end2 = '2016-04-15'
-    train = pd.read_csv('.cleaned/trainCleaned%s_%s.csv' % (train_start1, label_end1))
-    user_index = train[['user_id','sku_id']]
+    label_end1 = '2016-03-15'
+    train_start2 = '2016-02-10'
+    label_end2 = '2016-04-01'
+    #测试集
+    train_start3 = '2016-02-20'
+    label_end3 = '2016-04-10'
+
+    train1 = pd.read_csv('.cleaned/trainCleaned%s_%s.csv' % (train_start1, label_end1))
+    train2 = pd.read_csv('.cleaned/trainCleaned%s_%s.csv' % (train_start2, label_end2))
+    #合并数据，这里首先尝试直接合并，然后尝试只用第二部分的正例
+    #方法1
+    train = pd.concat([train1, train2])
+    #方法2
+    train = pd.concat([train1, train2[train2['label'] == 1]])
+
     label = train['label']
-    traindata = train.drop(['user_id','sku_id','label'])
+    traindata = train.drop(['user_id', 'sku_id', 'label'])
     X_train, X_test, y_train, y_test = train_test_split(traindata, label, test_size=0.2, random_state=0)
     dtrain=xgb.DMatrix(X_train, label=y_train)
     dtest=xgb.DMatrix(X_test, label=y_test)
@@ -134,14 +124,14 @@ def offlineTesT():#这里的还没改
     evallist = [(dtest, 'eval'), (dtrain, 'train')]
     bst=xgb.train( plst, dtrain, num_round, evallist)
 #
-    test = pd.read_csv('.cleaned/trainCleaned%s_%s.csv' % (train_start2, label_end2))
-    user_index2 = test[['user_id','sku_id']]
+    test = pd.read_csv('.cleaned/trainCleaned%s_%s.csv' % (train_start3, label_end3))
+    user_index2 = test[['user_id', 'sku_id']]
     label2 = test['label']
     testdata = test.drop(['user_id', 'sku_id', 'label'])
     testMa = xgb.DMatrix(testdata.values)
     y = bst.predict(testMa)
     pre = user_index2[y == 1]
-    offlineTest(pre,label2)
+    offlineTest(pre, label2)
 
 if __name__ == '__main__':
     #xgboost_cv()
