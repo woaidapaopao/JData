@@ -4,9 +4,8 @@ import pandas as pd
 import numpy as np
 from collections import Counter
 import datetime as dt
-import math
-START_DATE = dt.datetime.strptime('2016-2-01',"%Y-%m-%d")#当前时间
-END_DATE = dt.datetime.strptime('2016-4-05',"%Y-%m-%d")#当前时间
+START_DATE = dt.datetime.strptime('2016-2-10',"%Y-%m-%d")#当前时间
+END_DATE = dt.datetime.strptime('2016-4-01',"%Y-%m-%d")#当前时间
 TRAIN_FILE = 'TrainDataAll.csv'
 
 
@@ -20,11 +19,11 @@ def add_type_count(grouped):
     grouped['pro_favor_num'] = type_cnt[5]
     grouped['pro_click_num'] = type_cnt[6]
     #比率特征，这里设计一个平滑函数用于解决除零问题
-    grouped['pro_delcart_addcart_ratio'] = float('%.2f' % (math.log(1 + grouped['pro_delcart_num']) - math.log(1 + grouped['pro_addcart_num'])))
-    grouped['pro_buy_addcart_ratio'] = float('%.2f' % (math.log(1 + grouped['pro_buy_num']) - math.log(1 + grouped['pro_addcart_num'])))
-    grouped['pro_buy_browse_ratio'] = float('%.2f' % (math.log(1 + grouped['pro_buy_num']) - math.log(1 + grouped['pro_browse_num'])))
-    grouped['pro_buy_click_ratio'] = float('%.2f' % (math.log(1 + grouped['pro_buy_num']) - math.log(1 + grouped['pro_click_num'])))
-    grouped['pro_buy_favor_ratio'] = float('%.2f' % (math.log(1 + grouped['pro_buy_num']) - math.log(1 + grouped['pro_favor_num'])))
+    grouped['pro_delcart_addcart_ratio'] = (np.log(1 + grouped['pro_delcart_num']) - np.log(1 + grouped['pro_addcart_num'])).map(lambda x: '%.2f' % x)
+    grouped['pro_buy_addcart_ratio'] = (np.log(1 + grouped['pro_buy_num']) - np.log(1 + grouped['pro_addcart_num'])).map(lambda x: '%.2f' % x)
+    grouped['pro_buy_browse_ratio'] = (np.log(1 + grouped['pro_buy_num']) - np.log(1 + grouped['pro_browse_num'])).map(lambda x: '%.2f' % x)
+    grouped['pro_buy_click_ratio'] = (np.log(1 + grouped['pro_buy_num']) - np.log(1 + grouped['pro_click_num'])).map(lambda x: '%.2f' % x)
+    grouped['pro_buy_favor_ratio'] = (np.log(1 + grouped['pro_buy_num']) - np.log(1 + grouped['pro_favor_num'])).map(lambda x: '%.2f' % x)
     '''
     if (grouped['pro_delcart_num'] == 0) & (grouped['pro_addcart_num'] == 0):
         grouped['pro_delcart_addcart_ratio'] = 0.
@@ -103,21 +102,22 @@ def process_product_feat(product_behavior):
     #处理a1到a3
     product_behavior['a1'] = product_behavior['a1'].fillna(0)
     attr1_df = pd.get_dummies(product_behavior['a1'], prefix='a1')
-    del product_base['a1']
+    del product_behavior['a1']
     product_behavior['a2'] = product_behavior['a2'].fillna(0)
     attr2_df = pd.get_dummies(product_behavior['a2'], prefix='a2')
-    del product_base['a2']
+    del product_behavior['a2']
     product_behavior['a3'] = product_behavior['a3'].fillna(0)
     attr3_df = pd.get_dummies(product_behavior['a3'], prefix='a3')
-    del product_base['a3']
+    del product_behavior['a3']
     #处理评价数据
-    product_base['comment_num'].fillna(-1)
-    df = pd.get_dummies(comments['comment_num'], prefix='comment_num')
-    del product_base['comment_num']
+    #chu xian yige wen ti keneng queshao mou xie zhi
+    product_behavior['comment_num'] = product_behavior['comment_num'].fillna(-1)
+    df = pd.get_dummies(product_behavior['comment_num'], prefix='comment_num')
+    del product_behavior['comment_num']
     #是否有差评
-    comments['has_bad_comment'] = comments['has_bad_comment'].fillna(-1)
-    df2 = pd.get_dummies(comments['has_bad_comment'], prefix='has_bad_comment')
-    del product_base['df2']
+    product_behavior['has_bad_comment'] = product_behavior['has_bad_comment'].fillna(-1)
+    df2 = pd.get_dummies(product_behavior['has_bad_comment'], prefix='has_bad_comment')
+    del product_behavior['has_bad_comment']
     #差评率，直接用nan
     pro_f = pd.concat([attr1_df, attr2_df, attr3_df, df, df2], axis=1)
     product_behavior = pd.concat([product_behavior, pro_f], axis=1)
@@ -133,7 +133,7 @@ def process_product_feat(product_behavior):
 '''
 if __name__ == "__main__":
     product_base = pd.read_csv('JData_Product.csv')#基本的商品特征，包括a1、a2、a3、cate、brand
-    product_base = product_base[['a1', 'a2', 'a3']]
+    product_base = product_base[['sku_id','a1', 'a2', 'a3']]
     comment = get_from_jdata_comment()
     product_behavior = merge_action_data()#提取商品特征
     product_behavior = pd.merge(product_behavior, product_base, on=['sku_id'], how='left')

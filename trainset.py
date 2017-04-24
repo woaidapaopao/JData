@@ -41,5 +41,4 @@ def test_set(test_start1,test_end1):
     uicf = pd.read_csv('./feature/user_product_cate_feature%s_%s.csv' % (test_start, test_end))
     testact = pd.merge(uicf, userf, how='left', on='user_id')
     testact = pd.merge(testact, prof, how='left', on='sku_id')
-    testact = pd.merge(testact, ucf, how='left', on='user_id')
     testact.to_csv('./uncleanData/testdata%s_%s.csv' % (test_start1, test_end1), index=None)

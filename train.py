@@ -49,20 +49,20 @@ def offlineTest(pred, label):#label为真实值，pred为预测值
 
 def subOnline():
     train_start1 = '2016-02-01'#训练集1时间
-    label_end1 = '2016-03-20'
+    label_end1 = '2016-03-25'
     train_start2 = '2016-02-15'#训练集2时间
-    label_end2 = '2016-04-05'
+    label_end2 = '2016-04-10'
     test_start = '2016-02-25'#测试集时间
     test_end = '2016-04-15'
     #第一部分的训练集
-    train1 = pd.read_csv('.cleaned/trainCleaned%s_%s.csv' % (train_start1, label_end1))
+    train1 = pd.read_csv('./cleaned/trainCleaned%s_%s.csv' % (train_start1, label_end1))
     #读取第二部分的训练集
-    train2 = pd.read_csv('.cleaned/trainCleaned%s_%s.csv' % (train_start2, label_end2))
+    train2 = pd.read_csv('./cleaned/trainCleaned%s_%s.csv' % (train_start2, label_end2))
     #合并数据，这里首先尝试直接合并，然后尝试只用第二部分的正例
     #方法1
     train = pd.concat([train1, train2])
     #方法2
-    train = pd.concat([train1, train2[train2['label'] == 1]])
+    #train = pd.concat([train1, train2[train2['label'] == 1]])
 
     label = train['label']
     traindata = train.drop(['user_id', 'sku_id', 'label'], axis=1)
@@ -102,17 +102,17 @@ def offlineTesT():
     train_start3 = '2016-02-20'
     label_end3 = '2016-04-10'
 
-    train1 = pd.read_csv('.cleaned/trainCleaned%s_%s.csv' % (train_start1, label_end1))
-    train2 = pd.read_csv('.cleaned/trainCleaned%s_%s.csv' % (train_start2, label_end2))
+    train1 = pd.read_csv('./cleaned/trainCleaned%s_%s.csv' % (train_start1, label_end1))
+    train2 = pd.read_csv('./cleaned/trainCleaned%s_%s.csv' % (train_start2, label_end2))
     #合并数据，这里首先尝试直接合并，然后尝试只用第二部分的正例
     #方法1
     train = pd.concat([train1, train2])
     #方法2
-    train = pd.concat([train1, train2[train2['label'] == 1]])
+    #train = pd.concat([train1, train2[train2['label'] == 1]])
 
     label = train['label']
     traindata = train.drop(['user_id', 'sku_id', 'label'])
-    X_train, X_test, y_train, y_test = train_test_split(traindata, label, test_size=0.2, random_state=0)
+    X_train, X_test, y_train, y_test = train_test_split(traindata.values, label.values, test_size=0.2, random_state=0)
     dtrain=xgb.DMatrix(X_train, label=y_train)
     dtest=xgb.DMatrix(X_test, label=y_test)
     param = {'max_depth': 10, 'eta': 0.05, 'silent': 1, 'objective': 'binary:logistic'}
@@ -124,7 +124,7 @@ def offlineTesT():
     evallist = [(dtest, 'eval'), (dtrain, 'train')]
     bst=xgb.train( plst, dtrain, num_round, evallist)
 #
-    test = pd.read_csv('.cleaned/trainCleaned%s_%s.csv' % (train_start3, label_end3))
+    test = pd.read_csv('./cleaned/trainCleaned%s_%s.csv' % (train_start3, label_end3))
     user_index2 = test[['user_id', 'sku_id']]
     label2 = test['label']
     testdata = test.drop(['user_id', 'sku_id', 'label'])

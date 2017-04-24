@@ -5,10 +5,10 @@ import pandas as pd
 import numpy as np
 import datetime as dt
 from collections import Counter
-import math
 
-START_DATE = dt.datetime.strptime('2016-2-01', "%Y-%m-%d")#开始时间
-END_DATE = dt.datetime.strptime('2016-4-15', "%Y-%m-%d")#当前时间
+
+START_DATE = dt.datetime.strptime('2016-2-20', "%Y-%m-%d")#开始时间
+END_DATE = dt.datetime.strptime('2016-4-10', "%Y-%m-%d")#当前时间
 TRAIN_FILE = 'TrainDataAll.csv'
 
 
@@ -80,16 +80,16 @@ def user_pro_num(grouped):
 def user_pro_cate_feature(df):
     #比例特征（转换为排序特征）
     for i in {1, 3, 5, 7, 14, 20}:
-        df['uic_browse_radio%s' % i] = float('%.2f' % (math.log(1 + df['ui_browse_num%s' % i] / df['uc_browse_num%s' % i])))
-        df['uic_click_radio%s' % i] = float('%.2f' % (math.log(1 + df['ui_click_num%s' % i] / df['uc_click_num%s' % i])))
-        df['uic_weight_radio_%sday' % i] = float('%.2f' % (math.log(1 + df['ui_weight_%sday' % i] / df['uc_weight_%sday' % i])))
+        df['uic_browse_radio%s' % i] = (np.log(1 + df['ui_browse_num%s' % i] / df['uc_browse_num%s' % i])).map(lambda x: '%.2f' % x)
+        df['uic_click_radio%s' % i] = (np.log(1 + df['ui_click_num%s' % i] / df['uc_click_num%s' % i])).map(lambda x: '%.2f' % x)
+        df['uic_weight_radio_%sday' % i] = (np.log(1 + df['ui_weight_%sday' % i] / df['uc_weight_%sday' % i])).map(lambda x: '%.2f' % x)
     return df
 if __name__ == "__main__":
     train = pd.read_csv(TRAIN_FILE)
     train['time'] = pd.to_datetime(train['time'])
     train = train[(train['time'] >= START_DATE) & (train['time'] <= END_DATE)]
     #每次只使用5天之内且商品类别为8的ui对
-    start_days = datetime.strptime(train_end_date, '%Y-%m-%d') - timedelta(days=5)#5是可调数据
+    start_days = END_DATE - dt.timedelta(days=5)#5是可调数据
     user_act = train[(train['time'] <= END_DATE) & (train['time'] > start_days) & (train['cate'] == 8)][['user_id', 'sku_id']]
     user_act = user_act.drop_duplicates()
     user_act = pd.merge(train, user_act, on=['user_id', 'sku_id'], how='right')#这样就得到了用户商品对
@@ -105,4 +105,4 @@ if __name__ == "__main__":
     #计算ui&uc联合特征
     user_i_p_c = user_i_p_c.groupby('user_id').apply(user_pro_cate_feature)
 
-    grouped.to_csv('./feature/user_product_cate_feature%s_%s.csv' % (START_DATE, END_DATE), index=None)
+    user_i_p_c.to_csv('./feature/user_product_cate_feature%s_%s.csv' % (START_DATE, END_DATE), index=None)

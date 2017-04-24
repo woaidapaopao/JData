@@ -3,10 +3,9 @@ import pandas as pd
 import numpy as np
 from collections import Counter
 import datetime as dt
-import math
 #分为0201-0320,0215-0405,0225-0415
-START_DATE = dt.datetime.strptime('2016-2-01', "%Y-%m-%d")#当前时间
-END_DATE = dt.datetime.strptime('2016-4-05', "%Y-%m-%d")#当前时间
+START_DATE = dt.datetime.strptime('2016-2-20', "%Y-%m-%d")#当前时间
+END_DATE = dt.datetime.strptime('2016-4-10', "%Y-%m-%d")#当前时间
 TRAIN_FILE = 'TrainDataAll.csv'
 
 
@@ -20,12 +19,11 @@ def add_type_count(grouped):
     grouped['favor_num'] = type_cnt[5]
     grouped['click_num'] = type_cnt[6]
     #计算转换率
-    grouped['delcart_addcart_ratio'] = float('%.2f' % (math.log(1 + grouped['delcart_num']) - math.log(1 + grouped['addcart_num'])))
-    grouped['buy_addcart_ratio'] = float('%.2f' % (math.log(1 + grouped['buy_num']) - math.log(1 + grouped['addcart_num'])))
-    grouped['buy_browse_ratio'] = float('%.2f' % (math.log(1 + grouped['buy_num']) - math.log(1 + grouped['browse_num'])))
-    grouped['buy_click_ratio'] = float('%.2f' % (math.log(1 + grouped['buy_num']) - math.log(1 + grouped['click_num'])))
-    grouped['buy_favor_ratio'] = float('%.2f' % (math.log(1 + grouped['buy_num']) - math.log(1 + grouped['favor_num'])))
-
+    grouped['delcart_addcart_ratio'] = (np.log(1 + grouped['delcart_num']) - np.log(1 + grouped['addcart_num'])).map(lambda x: '%.2f' % x)
+    grouped['buy_addcart_ratio'] = (np.log(1 + grouped['buy_num']) - np.log(1 + grouped['addcart_num'])).map(lambda x: '%.2f' % x)
+    grouped['buy_browse_ratio'] = (np.log(1 + grouped['buy_num']) - np.log(1 + grouped['browse_num'])).map(lambda x: '%.2f' % x)
+    grouped['buy_click_ratio'] = (np.log(1 + grouped['buy_num']) - np.log(1 + grouped['click_num'])).map(lambda x: '%.2f' % x)
+    grouped['buy_favor_ratio'] = (np.log(1 + grouped['buy_num']) - np.log(1 + grouped['favor_num'])).map(lambda x: '%.2f' % x)
     '''
     grouped['delcart_addcart_ratio'] = (grouped['delcart_num'] / grouped['addcart_num']) if(grouped['delcart_num'] / grouped['addcart_num'] < 1.) else 1.
     grouped['buy_addcart_ratio'] = (grouped['buy_num'] / grouped['addcart_num']) if (grouped['buy_num'] / grouped['addcart_num'] < 1.).all() else 1.
@@ -82,28 +80,27 @@ def tranform_user_age(df):
 
 
 def tranform_user_regtime(df):
-    if df < 10:
+    if (df >= 0) & (df < 10):
         df = 0
-    elif df >= 10 & df < 30:
+    elif (df >= 10) & (df < 30):
         df = 1
-    elif df >= 30 & df < 60:
+    elif (df >= 30) & (df < 60):
         df = 2
-    elif df >= 60 & df < 120:
+    elif (df >= 60) & (df < 120):
         df = 3
-    elif df >= 120 & df < 360:
+    elif (df >= 120) & (df < 360):
         df = 4
-    elif df >= 360:
+    elif (df >= 360):
         df = 5
     else:
         df = -1
     return df
 
 
+
 #对nan进行预处理
 def process_user_feat(user_base):
     #处理注册时间
-    user_base['user_reg_tm'] = pd.to_datetime(user_base['user_reg_tm'])
-    user_base['user_reg_tm'] = (END_DATE - user_base['user_reg_tm']).map(lambda x: x.days)#转换为注册天数
     user_base['user_reg_tm'] = user_base['user_reg_tm'].map(tranform_user_regtime)
     reg_time = pd.get_dummies(user_base['user_reg_tm'], prefix="reg_time")
     del user_base['user_reg_tm']
@@ -126,6 +123,10 @@ def process_user_feat(user_base):
 
 if __name__ == "__main__":
     user_base = pd.read_csv('JData_User.csv', encoding='gbk')#读取用户
+    user_base['user_reg_tm'] = pd.to_datetime(user_base['user_reg_tm'])
+    user_base = user_base[user_base['user_reg_tm'] <= END_DATE]
+    user_base['user_reg_tm'] = (END_DATE - user_base['user_reg_tm']).map(lambda x: x.days)#转换为注册天数
+    
     user_behavior = merge_action_data()#提取用户行为特征
     user_behavior = pd.merge(user_behavior, user_base, on=['user_id'], how='left')#这里就会有NAN值产生
     user_behavior = process_user_feat(user_behavior)#处理数据
