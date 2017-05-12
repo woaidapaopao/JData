@@ -95,33 +95,36 @@ def subOnline():
 def offlineTesT():
     #训练集
     train_start1 = '2016-02-01'
-    label_end1 = '2016-03-15'
+    label_end1 = '2016-03-21'
     train_start2 = '2016-02-10'
-    label_end2 = '2016-04-01'
+    label_end2 = '2016-04-06'
     #测试集
     train_start3 = '2016-02-20'
-    label_end3 = '2016-04-10'
+    label_end3 = '2016-04-15'
 
     train1 = pd.read_csv('./cleaned/trainCleaned%s_%s.csv' % (train_start1, label_end1))
+    dlabel1 = train1['label']
     train2 = pd.read_csv('./cleaned/trainCleaned%s_%s.csv' % (train_start2, label_end2))
+    dtrain2 = train2['label']
     #合并数据，这里首先尝试直接合并，然后尝试只用第二部分的正例
     #方法1
     train = pd.concat([train1, train2])
     #方法2
     #train = pd.concat([train1, train2[train2['label'] == 1]])
 
-    label = train['label']
-    traindata = train.drop(['user_id', 'sku_id', 'label'])
-    X_train, X_test, y_train, y_test = train_test_split(traindata.values, label.values, test_size=0.2, random_state=0)
-    dtrain=xgb.DMatrix(X_train, label=y_train)
-    dtest=xgb.DMatrix(X_test, label=y_test)
-    param = {'max_depth': 10, 'eta': 0.05, 'silent': 1, 'objective': 'binary:logistic'}
+    dlabel = train['label']
+    traindata1 = train1.drop(['user_id', 'sku_id', 'label'],axis = 1)
+    traindata2 = train2.drop(['user_id', 'sku_id', 'label'],axis = 1)
+    traindata = train.drop(['user_id', 'sku_id', 'label'], axis = 1)
+    
+    dtrain=xgb.DMatrix(train, label=dlabel)
+    params = {'max_depth': 10, 'eta': 0.05, 'silent': 1, 'objective': 'binary:logistic'}
     num_round = 4000
     param['nthread'] = 4
     param['eval_metric'] = "auc"
     plst = param.items()
     plst += [('eval_metric', 'logloss')]
-    evallist = [(dtest, 'eval'), (dtrain, 'train')]
+    evallist = [(dtrain, 'train')]
     bst=xgb.train( plst, dtrain, num_round, evallist)
 #
     test = pd.read_csv('./cleaned/trainCleaned%s_%s.csv' % (train_start3, label_end3))
